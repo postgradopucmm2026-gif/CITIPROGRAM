@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Cumplimiento · CITI Program</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16263D; --ink-soft:#41526B; --paper:#F4F1EA; --card:#FFFFFF;
+    --line:#E2DDD1; --teal:#2F6F6A; --teal-d:#235651;
+    --green:#2E7D52; --green-bg:#E7F2EB;
+    --amber:#B7791F; --amber-bg:#FBF1DD;
+    --red:#B23B3B; --red-bg:#F8E7E5;
+    --grey:#6B7585; --grey-bg:#EEEBE3;
+    --blue:#1A5C96; --blue-bg:#E3EEF8;
+    --shadow:0 1px 2px rgba(20,35,57,.06),0 8px 24px rgba(20,35,57,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Inter",system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 80px;}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px;}
+  .brand .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);font-weight:600;}
+  .brand h1{font-family:"Fraunces",serif;font-weight:500;font-size:34px;line-height:1.05;margin:4px 0 2px;}
+  .brand p{margin:0;color:var(--ink-soft);font-size:14px;max-width:62ch;}
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+  .code-chip{font-size:12px;color:var(--ink-soft);border:1px solid var(--line);background:var(--card);padding:6px 12px;border-radius:999px;white-space:nowrap;}
+  .gs-status{font-size:12px;padding:5px 11px;border-radius:999px;white-space:nowrap;font-weight:600;display:flex;align-items:center;gap:6px;}
+  .gs-status.connected{background:var(--green-bg);color:var(--green);}
+  .gs-status.disconnected{background:var(--grey-bg);color:var(--grey);}
+  .gs-status.syncing{background:var(--blue-bg);color:var(--blue);}
+  .gs-status.error{background:var(--red-bg);color:var(--red);}
+  .gs-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+  .banner{display:none;background:var(--amber-bg);border:1px solid #ECD9AE;color:#7a5410;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:18px;}
+  .banner.show{display:block}
+  .banner-success{display:none;background:var(--green-bg);border:1px solid #C9E3D2;color:var(--green);padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:18px;}
+  .banner-success.show{display:block}
+
+  /* Config panel */
+  .config-panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;box-shadow:var(--shadow);}
+  .config-panel summary{font-weight:600;font-size:14px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:var(--ink);}
+  .config-panel summary::after{content:"▾";font-size:12px;color:var(--grey);margin-left:auto;}
+  details[open] summary::after{content:"▴"}
+  .config-body{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .config-body .full{grid-column:1/-1;}
+  .config-field{display:flex;flex-direction:column;gap:5px;}
+  .config-field label{font-size:12.5px;font-weight:600;color:var(--ink-soft);}
+  .config-field input,.config-field select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#FCFBF8;font:inherit;color:var(--ink);}
+  .config-field input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);}
+  .config-hint{font-size:11.5px;color:var(--grey);margin-top:3px;line-height:1.4;}
+  .config-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+  .kpi .lab{font-size:12.5px;color:var(--ink-soft);font-weight:500;}
+  .kpi .val{font-family:"Fraunces",serif;font-size:38px;font-weight:500;line-height:1;margin:8px 0 6px;letter-spacing:-.01em;}
+  .kpi .meta{font-size:12px;color:var(--grey);}
+  .kpi .bar{height:6px;border-radius:99px;background:var(--grey-bg);margin-top:10px;overflow:hidden;}
+  .kpi .bar>i{display:block;height:100%;border-radius:99px;transition:width .5s ease;}
+  .kpi.ok .val{color:var(--green)}.kpi.ok .bar>i{background:var(--green)}
+  .kpi.warn .val{color:var(--amber)}.kpi.warn .bar>i{background:var(--amber)}
+  .kpi.bad .val{color:var(--red)}.kpi.bad .bar>i{background:var(--red)}
+  .kpi .tag{position:absolute;top:14px;right:14px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;}
+  .tag.met{background:var(--green-bg);color:var(--green)}
+  .tag.miss{background:var(--red-bg);color:var(--red)}
+
+  /* Toolbar */
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+  .search{flex:1 1 220px;min-width:180px;position:relative;}
+  .search input{width:100%;padding:10px 12px 10px 34px;border:1px solid var(--line);border-radius:10px;background:var(--card);font:inherit;color:var(--ink);}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.5}
+  select,input[type=date],input[type=text],input[type=number]{font:inherit;color:var(--ink);}
+  .ctl{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);}
+  .plazo{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;}
+  .plazo input{width:58px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;text-align:center;}
+  button{font:inherit;cursor:pointer;border:none;border-radius:10px;}
+  .btn{padding:10px 15px;background:var(--teal);color:#fff;font-weight:600;box-shadow:var(--shadow);transition:background .15s;}
+  .btn:hover{background:var(--teal-d)}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:none;font-weight:500;}
+  .btn.ghost:hover{border-color:var(--teal);color:var(--teal-d)}
+  .btn.sm{padding:7px 11px;font-size:13px;}
+  .btn.blue{background:var(--blue);color:#fff;}
+  .btn.blue:hover{background:#144b7c}
+  .menu{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* Table */
+  .tablecard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+  .scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:920px;}
+  thead th{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);text-align:left;padding:13px 12px;background:#FBFAF7;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap;}
+  tbody td{padding:12px;border-bottom:1px solid #F0EDE5;vertical-align:middle;font-size:13.5px;}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#FBFAF6}
+  .mat{font-weight:600;font-variant-numeric:tabular-nums;}
+  .sub{display:block;color:var(--grey);font-size:12px;}
+  .nowrap{white-space:nowrap}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+  .badge::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor;}
+  .b-ok{color:var(--green);background:var(--green-bg)}
+  .b-warn{color:var(--amber);background:var(--amber-bg)}
+  .b-bad{color:var(--red);background:var(--red-bg)}
+  .b-neutral{color:var(--grey);background:var(--grey-bg)}
+  .rowbtn{background:transparent;padding:5px;border-radius:7px;color:var(--ink-soft);}
+  .rowbtn:hover{background:var(--grey-bg);color:var(--ink)}
+  .rowbtn.del:hover{color:var(--red);background:var(--red-bg)}
+  .acts{display:flex;gap:2px;}
+  .empty{padding:54px 20px;text-align:center;color:var(--grey);}
+  .empty h3{font-family:"Fraunces",serif;font-weight:500;color:var(--ink);margin:0 0 6px;font-size:20px;}
+  .empty p{margin:0 0 16px;}
+
+  /* Alerts */
+  .panel{margin-top:24px;}
+  .panel h2{font-family:"Fraunces",serif;font-weight:500;font-size:21px;margin:0 0 4px;}
+  .panel .desc{color:var(--ink-soft);font-size:13px;margin:0 0 14px;}
+  .alist{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;}
+  .acard{background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:12px;padding:13px 15px;box-shadow:var(--shadow);}
+  .acard.crit{border-left-color:var(--red)}.acard.urg{border-left-color:var(--amber)}.acard.rem{border-left-color:var(--teal)}
+  .acard .who{font-weight:600;}
+  .acard .who span{color:var(--grey);font-weight:400;font-size:12px;}
+  .acard .msg{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+  .acard .lvl{display:inline-block;margin-top:8px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--grey-bg);color:var(--ink-soft);}
+  .allgood{background:var(--green-bg);border:1px solid #C9E3D2;color:var(--green);padding:14px 16px;border-radius:12px;font-weight:500;}
+
+  /* Modal */
+  .ovl{position:fixed;inset:0;background:rgba(22,38,61,.45);display:none;align-items:flex-start;justify-content:center;padding:30px 16px;z-index:50;overflow:auto;}
+  .ovl.show{display:flex}
+  .modal{background:var(--card);width:100%;max-width:560px;border-radius:18px;box-shadow:0 24px 60px rgba(20,35,57,.3);padding:24px;}
+  .modal h3{font-family:"Fraunces",serif;font-weight:500;font-size:23px;margin:0 0 2px;}
+  .modal .mp{color:var(--ink-soft);font-size:13px;margin:0 0 18px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:2px;}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:12.5px;font-weight:600;color:var(--ink-soft);}
+  .field label .opt{font-weight:400;color:var(--grey);}
+  .field input,.field textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#FCFBF8;font:inherit;color:var(--ink);}
+  .field input:focus,.field textarea:focus,.search input:focus,.ctl:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);}
+  .field textarea{resize:vertical;min-height:58px;}
+  .switch{display:flex;align-items:center;gap:10px;padding:10px 0;}
+  .switch input{width:18px;height:18px;accent-color:var(--teal);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+  .hint{font-size:11.5px;color:var(--grey);margin-top:3px;}
+  footer.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--grey);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  input[type=file]{display:none}
+  .spinner{display:inline-block;width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Setup wizard */
+  .wizard{background:var(--blue-bg);border:1px solid #B5D4F4;border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;}
+  .wizard h3{font-family:"Fraunces",serif;font-weight:500;font-size:18px;margin:0 0 6px;color:var(--blue);}
+  .wizard p{font-size:13px;color:#144b7c;margin:0 0 12px;}
+  .wizard ol{margin:0 0 14px;padding-left:18px;font-size:13px;color:#144b7c;line-height:1.9;}
+  .wizard code{background:rgba(26,92,150,.12);padding:1px 6px;border-radius:5px;font-family:monospace;font-size:12px;}
+
+  @media (max-width:880px){.kpis{grid-template-columns:repeat(2,1fr)}.brand h1{font-size:28px}.config-body{grid-template-columns:1fr}}
+  @media (max-width:520px){.grid2{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Procedimiento POE-INV-CITI-01</div>
+      <h1>Control de Cumplimiento — CITI Program</h1>
+      <p>Registro y validación automática de la formación en ética de la investigación. Los datos se sincronizan en tiempo real con Google Sheets.</p>
+    </div>
+    <div class="header-right">
+      <div class="code-chip" id="savedChip">Guardado automático</div>
+      <div class="gs-status disconnected" id="gsStatus">Sin conectar a Google Sheets</div>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+  <div class="banner-success" id="bannerOk"></div>
+
+  <!-- Setup Wizard (visible solo sin configuración) -->
+  <div class="wizard" id="wizard">
+    <h3>⚙ Configurar sincronización con Google Sheets</h3>
+    <p>Sigue estos 4 pasos una sola vez. Después, cada registro se guarda automáticamente en tu hoja de cálculo institucional.</p>
+    <ol>
+      <li>Crea una Google Sheet nueva y dale un nombre (ej. <em>Seguimiento CITI Program</em>).</li>
+      <li>En la hoja, ve a <strong>Extensiones → Apps Script</strong>.</li>
+      <li>Borra el código existente, pega el script que descargaste y haz clic en <strong>Guardar → Implementar → Nueva implementación</strong>. Tipo: <em>App web</em>. Acceso: <em>Cualquier persona</em>. Copia la URL de implementación.</li>
+      <li>Pega la URL abajo en "Configuración de sincronización" y haz clic en <strong>Probar conexión</strong>.</li>
+    </ol>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn sm" onclick="downloadScript()">⬇ Descargar script Apps Script</button>
+      <button class="btn ghost sm" onclick="document.getElementById('wizard').style.display='none'">Ocultar</button>
+    </div>
+  </div>
+
+  <!-- Config panel -->
+  <details class="config-panel" id="configPanel">
+    <summary>⚙ Configuración de sincronización con Google Sheets</summary>
+    <div class="config-body">
+      <div class="config-field full">
+        <label>URL de implementación (Apps Script Web App)</label>
+        <input id="cfgUrl" type="text" placeholder="https://script.google.com/macros/s/XXXXX/exec">
+        <div class="config-hint">Esta URL la obtienes en Google Apps Script → Implementar → Administrar implementaciones. Comienza con https://script.google.com/macros/s/</div>
+      </div>
+      <div class="config-field">
+        <label>Nombre de la hoja (pestaña)</label>
+        <input id="cfgSheet" type="text" placeholder="Seguimiento" value="Seguimiento">
+        <div class="config-hint">El nombre exacto de la pestaña en tu Google Sheet.</div>
+      </div>
+      <div class="config-field">
+        <label>Clave de acceso (opcional)</label>
+        <input id="cfgKey" type="password" placeholder="Dejar vacío si no configuraste una">
+        <div class="config-hint">Si añadiste una clave de seguridad en el script, escríbela aquí.</div>
+      </div>
+      <div class="config-field full">
+        <div class="config-actions">
+          <button class="btn sm blue" onclick="testConnection()">Probar conexión</button>
+          <button class="btn sm" onclick="saveConfig()">Guardar configuración</button>
+          <button class="btn ghost sm" onclick="clearConfig()">Borrar configuración</button>
+        </div>
+        <div id="testResult" style="margin-top:8px;font-size:12.5px;"></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Indicators -->
+  <section class="kpis" id="kpis"></section>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="text" placeholder="Buscar por matrícula, nombre o programa…" autocomplete="off">
+    </div>
+    <select id="filter" class="ctl">
+      <option value="all">Todos los estados</option>
+      <option value="pend">Pendientes de certificar</option>
+      <option value="cert">Certificados</option>
+      <option value="late">Acceso fuera de plazo</option>
+      <option value="risk">En riesgo de graduación</option>
+      <option value="block">No pueden presentar</option>
+    </select>
+    <div class="plazo" title="Plazo máximo para enviar el acceso desde el inicio de la asignatura">
+      Acceso oportuno ≤ <input id="plazo" type="number" min="1" max="120" value="15"> días
+    </div>
+    <div class="menu">
+      <button class="btn" id="addBtn">+ Agregar estudiante</button>
+      <button class="btn ghost sm" id="syncBtn" onclick="syncFromSheets()" title="Recargar datos desde Google Sheets">↻ Sincronizar</button>
+      <button class="btn ghost sm" id="csvBtn">Exportar CSV</button>
+      <button class="btn ghost sm" id="backupBtn">Respaldar (JSON)</button>
+      <button class="btn ghost sm" id="restoreBtn">Restaurar JSON</button>
+      <input type="file" id="fileInput" accept="application/json">
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="tablecard">
+    <div class="scroll">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Estudiante</th>
+            <th>Programa</th>
+            <th>Inicio asignatura</th>
+            <th>Envío acceso</th>
+            <th>Acceso</th>
+            <th>Certificación</th>
+            <th>Graduación</th>
+            <th>¿Puede presentar?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty" style="display:none">
+      <h3>Aún no hay estudiantes registrados</h3>
+      <p>Agrega el primer estudiante o sincroniza desde Google Sheets.</p>
+      <button class="btn" onclick="openModal()">+ Agregar estudiante</button>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <section class="panel">
+    <h2>Alertas y seguimiento</h2>
+    <p class="desc">Recordatorios (30/60/90 días), nivel de escalamiento sugerido y alertas previas a graduación (6/3/1 mes).</p>
+    <div id="alerts"></div>
+  </section>
+
+  <footer class="foot">
+    <span>Indicador 1 · Acceso oportuno (meta 100%) &nbsp;·&nbsp; Indicador 2 · Certificados (meta ≥ 95%)</span>
+    <span id="count"></span>
+  </footer>
+</div>
+
+<!-- Modal -->
+<div class="ovl" id="ovl">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <h3 id="mtitle">Agregar estudiante</h3>
+    <p class="mp">Las fechas determinan automáticamente el estado de cumplimiento y se sincronizan con Google Sheets.</p>
+    <div class="grid2">
+      <div class="field"><label>Matrícula</label><input id="f_mat" type="text" placeholder="2024-0001"></div>
+      <div class="field"><label>Nombre completo</label><input id="f_nom" type="text" placeholder="Nombre y apellidos"></div>
+      <div class="field full"><label>Programa</label><input id="f_prog" type="text" placeholder="Maestría en…"></div>
+      <div class="field"><label>Inicio de la asignatura <span class="opt">(Metodología / Seminario)</span></label><input id="f_inicio" type="date"></div>
+      <div class="field"><label>Fecha de envío del acceso</label><input id="f_envio" type="date"></div>
+      <div class="field"><label>Fecha del certificado <span class="opt">(si completó)</span></label><input id="f_cert" type="date"></div>
+      <div class="field"><label>Graduación estimada <span class="opt">(opcional)</span></label><input id="f_grad" type="date"></div>
+      <div class="field full">
+        <div class="switch"><input id="f_completo" type="checkbox"><label for="f_completo" style="font-weight:600;color:var(--ink)">Completó satisfactoriamente el CITI Program</label></div>
+      </div>
+      <div class="field full"><label>Observaciones <span class="opt">(opcional)</span></label><textarea id="f_obs" placeholder="Notas de seguimiento…"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" id="saveBtn">Guardar y sincronizar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== CONFIGURACIÓN ========== */
+const KEY_DATA="citi:students:v2", KEY_CFG="citi:config:v2", KEY_GS="citi:gsconfig:v1";
+const mem={};
+
+async function sget(key){
+  try{if(window.storage){const r=await window.storage.get(key);return r?JSON.parse(r.value):null;}}catch(e){}
+  try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){}
+  return key in mem?mem[key]:null;
+}
+async function sset(key,val){
+  mem[key]=val;
+  try{if(window.storage){await window.storage.set(key,JSON.stringify(val),false);return;}}catch(e){}
+  try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}
+}
+
+let students=[];
+let cfg={plazo:15};
+let gsCfg={url:"",sheet:"Seguimiento",key:""};
+let editId=null;
+let gsConnected=false;
+
+const $=s=>document.querySelector(s);
+const rowsEl=$("#rows"), emptyEl=$("#empty");
+function showBanner(t){const b=$("#banner");b.textContent=t;b.classList.add("show");setTimeout(()=>b.classList.remove("show"),6000);}
+function showOk(t){const b=$("#bannerOk");b.textContent=t;b.classList.add("show");setTimeout(()=>b.classList.remove("show"),4000);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ========== GOOGLE SHEETS ========== */
+function setGsStatus(state, msg){
+  const el=$("#gsStatus");
+  el.className="gs-status "+state;
+  el.textContent=msg;
+}
+
+async function loadGsCfg(){
+  const saved=await sget(KEY_GS);
+  if(saved){
+    gsCfg=saved;
+    if(gsCfg.url){
+      $("#cfgUrl").value=gsCfg.url;
+      $("#cfgSheet").value=gsCfg.sheet||"Seguimiento";
+      $("#cfgKey").value=gsCfg.key||"";
+      $("#wizard").style.display="none";
+      setGsStatus("disconnected","Google Sheets configurado — sin verificar");
+    }
+  }
+}
+
+async function saveConfig(){
+  gsCfg.url=$("#cfgUrl").value.trim();
+  gsCfg.sheet=$("#cfgSheet").value.trim()||"Seguimiento";
+  gsCfg.key=$("#cfgKey").value.trim();
+  await sset(KEY_GS,gsCfg);
+  showOk("Configuración guardada correctamente.");
+  if(gsCfg.url) $("#wizard").style.display="none";
+}
+
+async function clearConfig(){
+  if(!confirm("¿Borrar la configuración de Google Sheets?")) return;
+  gsCfg={url:"",sheet:"Seguimiento",key:""};
+  await sset(KEY_GS,gsCfg);
+  $("#cfgUrl").value=""; $("#cfgSheet").value="Seguimiento"; $("#cfgKey").value="";
+  gsConnected=false;
+  setGsStatus("disconnected","Sin conectar a Google Sheets");
+  $("#testResult").textContent="";
+}
+
+async function testConnection(){
+  const url=$("#cfgUrl").value.trim();
+  const key=$("#cfgKey").value.trim();
+  if(!url){$("#testResult").innerHTML=`<span style="color:var(--red)">⚠ Ingresa la URL primero.</span>`;return;}
+  $("#testResult").innerHTML=`<span style="color:var(--blue)"><span class="spinner"></span> Probando conexión…</span>`;
+  setGsStatus("syncing","Verificando…");
+  try{
+    const params=new URLSearchParams({action:"ping",sheet:$("#cfgSheet").value.trim()||"Seguimiento"});
+    if(key) params.append("key",key);
+    const res=await fetch(url+"?"+params.toString(),{method:"GET"});
+    const txt=await res.text();
+    let data;
+    try{data=JSON.parse(txt);}catch(e){throw new Error("La URL no devolvió JSON válido. Verifica que el script esté publicado como App web.");}
+    if(data.status==="ok"){
+      gsConnected=true;
+      setGsStatus("connected","Conectado a Google Sheets ✓");
+      $("#testResult").innerHTML=`<span style="color:var(--green)">✓ Conexión exitosa. Hoja: <strong>${esc(data.sheet||"")}</strong>. Filas: ${data.rows||0}.</span>`;
+      await saveConfig();
+    } else {
+      throw new Error(data.error||"El script respondió con un error.");
+    }
+  }catch(e){
+    gsConnected=false;
+    setGsStatus("error","Error de conexión");
+    $("#testResult").innerHTML=`<span style="color:var(--red)">✗ ${esc(e.message)}</span>`;
+  }
+}
+
+async function pushToSheets(student, action="upsert"){
+  if(!gsCfg.url || !gsConnected) return false;
+  try{
+    const payload={action, sheet:gsCfg.sheet, student};
+    if(gsCfg.key) payload.key=gsCfg.key;
+    const res=await fetch(gsCfg.url,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify(payload)
+    });
+    const data=await res.json();
+    return data.status==="ok";
+  }catch(e){return false;}
+}
+
+async function deleteFromSheets(id){
+  if(!gsCfg.url || !gsConnected) return;
+  try{
+    const payload={action:"delete",sheet:gsCfg.sheet,id};
+    if(gsCfg.key) payload.key=gsCfg.key;
+    await fetch(gsCfg.url,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)});
+  }catch(e){}
+}
+
+async function syncFromSheets(){
+  if(!gsCfg.url){showBanner("Configura la URL de Google Sheets primero.");return;}
+  setGsStatus("syncing","Sincronizando…");
+  $("#syncBtn").innerHTML='<span class="spinner"></span> Sincronizando';
+  try{
+    const params=new URLSearchParams({action:"getAll",sheet:gsCfg.sheet});
+    if(gsCfg.key) params.append("key",gsCfg.key);
+    const res=await fetch(gsCfg.url+"?"+params.toString());
+    const data=await res.json();
+    if(data.status==="ok" && Array.isArray(data.students)){
+      students=data.students;
+      gsConnected=true;
+      await sset(KEY_DATA,students);
+      setGsStatus("connected","Conectado — sincronizado ✓");
+      showOk(`Sincronización completada. ${students.length} estudiante(s) cargados desde Google Sheets.`);
+      render();
+    } else {
+      throw new Error(data.error||"Error al obtener datos.");
+    }
+  }catch(e){
+    setGsStatus("error","Error al sincronizar");
+    showBanner("No se pudo sincronizar: "+e.message);
+  }
+  $("#syncBtn").textContent="↻ Sincronizar";
+}
+
+async function pushAllToSheets(){
+  if(!gsCfg.url || !gsConnected) return;
+  setGsStatus("syncing","Subiendo datos…");
+  try{
+    const payload={action:"replaceAll",sheet:gsCfg.sheet,students};
+    if(gsCfg.key) payload.key=gsCfg.key;
+    const res=await fetch(gsCfg.url,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)});
+    const data=await res.json();
+    if(data.status==="ok"){setGsStatus("connected","Conectado — sincronizado ✓");}
+    else throw new Error(data.error||"Error.");
+  }catch(e){setGsStatus("error","Error al subir");}
+}
+
+/* ========== APPS SCRIPT DOWNLOAD ========== */
+function downloadScript(){
+  const script=`// Script para CITI Program Tracker · POE-INV-CITI-01
+// Instrucciones:
+// 1. En tu Google Sheet: Extensiones → Apps Script
+// 2. Pega este código completo (reemplaza el existente)
+// 3. Implementar → Nueva implementación → Tipo: App web
+//    Ejecutar como: Yo | Acceso: Cualquier persona
+// 4. Copia la URL y pégala en la plantilla HTML
+
+// OPCIONAL: define una clave de acceso para mayor seguridad
+const ACCESS_KEY = ""; // Ej: "citi2024seguro"
+
+function doGet(e) {
+  return handleRequest(e, "GET");
+}
+
+function doPost(e) {
+  return handleRequest(e, "POST");
+}
+
+function handleRequest(e, method) {
+  const output = ContentService.createTextOutput();
+  output.setMimeType(ContentService.MimeType.JSON);
+  
+  try {
+    let params = {};
+    if (method === "GET") {
+      params = e.parameter || {};
+    } else {
+      try { params = JSON.parse(e.postData.contents); } catch(err) { params = e.parameter || {}; }
+    }
+    
+    // Verificar clave si está configurada
+    if (ACCESS_KEY && params.key !== ACCESS_KEY) {
+      output.setContent(JSON.stringify({status:"error", error:"Clave de acceso incorrecta."}));
+      return output;
+    }
+    
+    const sheetName = params.sheet || "Seguimiento";
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(sheetName);
+    
+    const action = params.action || "";
+    
+    if (action === "ping") {
+      if (!sheet) sheet = createSheet(ss, sheetName);
+      const rows = Math.max(0, sheet.getLastRow() - 1);
+      output.setContent(JSON.stringify({status:"ok", sheet:sheetName, rows}));
+      return output;
+    }
+    
+    if (action === "getAll") {
+      if (!sheet) { output.setContent(JSON.stringify({status:"ok",students:[]})); return output; }
+      const data = sheet.getDataRange().getValues();
+      if (data.length <= 1) { output.setContent(JSON.stringify({status:"ok",students:[]})); return output; }
+      const headers = data[0];
+      const students = data.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? String(row[i]) : ""; });
+        return obj;
+      });
+      output.setContent(JSON.stringify({status:"ok", students}));
+      return output;
+    }
+    
+    if (action === "upsert") {
+      if (!sheet) sheet = createSheet(ss, sheetName);
+      const student = params.student;
+      if (!student || !student.id) throw new Error("Datos inválidos.");
+      upsertRow(sheet, student);
+      output.setContent(JSON.stringify({status:"ok"}));
+      return output;
+    }
+    
+    if (action === "delete") {
+      if (!sheet) { output.setContent(JSON.stringify({status:"ok"})); return output; }
+      const id = params.id;
+      deleteRow(sheet, id);
+      output.setContent(JSON.stringify({status:"ok"}));
+      return output;
+    }
+    
+    if (action === "replaceAll") {
+      if (!sheet) sheet = createSheet(ss, sheetName);
+      const students = params.students || [];
+      replaceAll(sheet, students);
+      output.setContent(JSON.stringify({status:"ok", written:students.length}));
+      return output;
+    }
+    
+    output.setContent(JSON.stringify({status:"error", error:"Acción desconocida: " + action}));
+    return output;
+    
+  } catch(err) {
+    output.setContent(JSON.stringify({status:"error", error:err.message}));
+    return output;
+  }
+}
+
+const HEADERS = ["id","mat","nom","prog","inicio","envio","completo","cert","grad","obs","_updated"];
+
+function createSheet(ss, name) {
+  const sheet = ss.insertSheet(name);
+  sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight("bold").setBackground("#2F6F6A").setFontColor("#FFFFFF");
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+function findRow(sheet, id) {
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(id)) return i + 1;
+  }
+  return -1;
+}
+
+function studentToRow(student) {
+  return HEADERS.map(h => {
+    if (h === "_updated") return new Date().toISOString();
+    if (h === "completo") return student[h] ? "true" : "false";
+    return student[h] !== undefined ? String(student[h]) : "";
+  });
+}
+
+function upsertRow(sheet, student) {
+  const rowNum = findRow(sheet, student.id);
+  const rowData = [studentToRow(student)];
+  if (rowNum > 0) {
+    sheet.getRange(rowNum, 1, 1, HEADERS.length).setValues(rowData);
+  } else {
+    sheet.appendRow(studentToRow(student));
+  }
+}
+
+function deleteRow(sheet, id) {
+  const rowNum = findRow(sheet, id);
+  if (rowNum > 0) sheet.deleteRow(rowNum);
+}
+
+function replaceAll(sheet, students) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, HEADERS.length).clearContent();
+  if (students.length > 0) {
+    const rows = students.map(studentToRow);
+    sheet.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
+  }
+}`;
+
+  const blob=new Blob([script],{type:"text/plain;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="CITI_AppScript.gs";a.click();URL.revokeObjectURL(url);
+  showOk("Script descargado. Ábrelo y copia el contenido en Google Apps Script.");
+}
+
+/* ========== FECHAS ========== */
+function parse(d){if(!d) return null;const p=d.split("-").map(Number);return new Date(p[0],p[1]-1,p[2]);}
+function today(){const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate());}
+function days(a,b){return Math.round((b-a)/86400000);}
+function monthsUntil(d){const t=today();return(d.getFullYear()-t.getFullYear())*12+(d.getMonth()-t.getMonth())+(d.getDate()>=t.getDate()?0:-1);}
+function fmt(d){if(!d)return "—";return d.toLocaleDateString("es-DO",{day:"2-digit",month:"short",year:"numeric"});}
+
+/* ========== VALIDACIÓN ========== */
+function evaluate(s){
+  const inicio=parse(s.inicio),envio=parse(s.envio),grad=parse(s.grad);
+  const r={};
+  const isComplete=s.completo==="true"||s.completo===true;
+  if(!envio){r.acceso={t:"Sin envío",c:"b-bad"};r.oportuno=false;r.requerido=true;}
+  else if(inicio){
+    const d=days(inicio,envio);
+    if(d<=cfg.plazo){r.acceso={t:"Oportuno ("+d+" d)",c:"b-ok"};r.oportuno=true;}
+    else{r.acceso={t:"Fuera de plazo ("+d+" d)",c:"b-bad"};r.oportuno=false;}
+    r.requerido=true;
+  } else {r.acceso={t:"Enviado",c:"b-warn"};r.oportuno=false;r.requerido=true;}
+  if(isComplete){r.cert={t:"Certificado",c:"b-ok"};r.certificado=true;}
+  else{r.cert={t:"Pendiente",c:"b-warn"};r.certificado=false;}
+  r.diasEnvio=envio?days(envio,today()):null;
+  r.recordatorio=null;r.nivel=null;
+  if(!isComplete&&envio){
+    const de=r.diasEnvio;
+    if(de>=90){r.recordatorio="90+ días sin certificar";r.nivel="Nivel 3 · Estudiante, coordinador y director";}
+    else if(de>=60){r.recordatorio="60 días sin certificar";r.nivel="Nivel 2 · Estudiante y coordinador";}
+    else if(de>=30){r.recordatorio="30 días sin certificar";r.nivel="Nivel 1 · Estudiante";}
+  }
+  r.gradAlert=null;
+  if(grad&&!isComplete){
+    const m=monthsUntil(grad);
+    if(m<=1){r.gradAlert={t:"Crítico · ≤1 mes",c:"b-bad",k:"crit"};}
+    else if(m<=3){r.gradAlert={t:"Urgente · ≤3 meses",c:"b-bad",k:"urg"};}
+    else if(m<=6){r.gradAlert={t:"Alerta · ≤6 meses",c:"b-warn",k:"urg"};}
+  }
+  r.puede=isComplete;
+  return r;
+}
+
+/* ========== RENDER ========== */
+function visible(){
+  const q=$("#q").value.trim().toLowerCase();
+  const f=$("#filter").value;
+  return students.filter(s=>{
+    const ev=evaluate(s);
+    if(q){const hay=(s.mat+" "+s.nom+" "+s.prog).toLowerCase();if(!hay.includes(q))return false;}
+    if(f==="pend"&&(s.completo==="true"||s.completo===true))return false;
+    if(f==="cert"&&!(s.completo==="true"||s.completo===true))return false;
+    if(f==="late"&&ev.oportuno!==false)return false;
+    if(f==="late"&&!ev.requerido)return false;
+    if(f==="risk"&&!ev.gradAlert)return false;
+    if(f==="block"&&(s.completo==="true"||s.completo===true))return false;
+    return true;
+  });
+}
+function badge(o){return o?`<span class="badge ${o.c}">${o.t}</span>`:"";}
+function render(){
+  const list=visible();
+  rowsEl.innerHTML="";
+  emptyEl.style.display=students.length?"none":"block";
+  $("#tbl").style.display=students.length?"":"none";
+  list.forEach(s=>{
+    const ev=evaluate(s);
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td><span class="mat">${esc(s.mat)||"—"}</span><span class="sub">${esc(s.nom)||""}</span></td>
+      <td>${esc(s.prog)||"—"}</td>
+      <td class="nowrap">${fmt(parse(s.inicio))}</td>
+      <td class="nowrap">${fmt(parse(s.envio))}</td>
+      <td>${badge(ev.acceso)}</td>
+      <td>${badge(ev.cert)}${(s.completo==="true"||s.completo===true)&&s.cert?`<span class="sub">${fmt(parse(s.cert))}</span>`:""}</td>
+      <td class="nowrap">${fmt(parse(s.grad))}${ev.gradAlert?`<br>${badge(ev.gradAlert)}`:""}</td>
+      <td>${ev.puede?`<span class="badge b-ok">Sí</span>`:`<span class="badge b-bad">No</span>`}</td>
+      <td><div class="acts">
+        <button class="rowbtn" title="Editar" onclick="editStudent('${s.id}')">${icoEdit}</button>
+        <button class="rowbtn del" title="Eliminar" onclick="delStudent('${s.id}')">${icoDel}</button>
+      </div></td>`;
+    rowsEl.appendChild(tr);
+  });
+  renderKPIs(); renderAlerts();
+  $("#count").textContent=`${students.length} estudiante(s) · ${list.length} en vista`;
+}
+
+function renderKPIs(){
+  const req=students.filter(s=>evaluate(s).requerido);
+  const opp=req.filter(s=>evaluate(s).oportuno).length;
+  const ind1=req.length?Math.round(opp/req.length*100):0;
+  const cert=students.filter(s=>s.completo==="true"||s.completo===true).length;
+  const ind2=students.length?Math.round(cert/students.length*100):0;
+  const pend=students.length-cert;
+  const risk=students.filter(s=>evaluate(s).gradAlert).length;
+  const cls1=req.length===0?"":(ind1>=100?"ok":ind1>=85?"warn":"bad");
+  const cls2=students.length===0?"":(ind2>=95?"ok":ind2>=80?"warn":"bad");
+  const tag1=req.length?(ind1>=100?`<span class="tag met">Meta</span>`:`<span class="tag miss">−${100-ind1}%</span>`):"";
+  const tag2=students.length?(ind2>=95?`<span class="tag met">Meta</span>`:`<span class="tag miss">−${Math.max(0,95-ind2)}%</span>`):"";
+  $("#kpis").innerHTML=`
+    <div class="kpi ${cls1}">${tag1}<div class="lab">Acceso oportuno</div><div class="val">${req.length?ind1:"—"}<span style="font-size:18px">%</span></div><div class="meta">Meta 100% · ${opp}/${req.length}</div><div class="bar"><i style="width:${ind1}%"></i></div></div>
+    <div class="kpi ${cls2}">${tag2}<div class="lab">Estudiantes certificados</div><div class="val">${students.length?ind2:"—"}<span style="font-size:18px">%</span></div><div class="meta">Meta ≥95% · ${cert}/${students.length}</div><div class="bar"><i style="width:${ind2}%"></i></div></div>
+    <div class="kpi ${pend?"warn":"ok"}"><div class="lab">Pendientes de certificar</div><div class="val">${pend}</div><div class="meta">Sin certificación CITI</div><div class="bar"><i style="width:${students.length?Math.round(pend/students.length*100):0}%"></i></div></div>
+    <div class="kpi ${risk?"bad":"ok"}"><div class="lab">En riesgo de graduación</div><div class="val">${risk}</div><div class="meta">Sin certificar y próximos a graduar</div><div class="bar"><i style="width:${students.length?Math.round(risk/students.length*100):0}%"></i></div></div>`;
+}
+
+function renderAlerts(){
+  const cards=[];
+  students.forEach(s=>{
+    const ev=evaluate(s);
+    if(ev.gradAlert){cards.push({order:ev.gradAlert.k==="crit"?0:1,k:ev.gradAlert.k,who:s.nom||s.mat,mat:s.mat,msg:`Graduación ${fmt(parse(s.grad))} sin certificación CITI completada.`,lvl:ev.gradAlert.t});}
+    else if(ev.recordatorio){cards.push({order:2,k:"rem",who:s.nom||s.mat,mat:s.mat,msg:`${ev.recordatorio}. Acceso enviado ${fmt(parse(s.envio))}.`,lvl:ev.nivel});}
+  });
+  cards.sort((a,b)=>a.order-b.order);
+  const el=$("#alerts");
+  if(!cards.length){el.innerHTML=`<div class="allgood">Sin alertas activas. Todos los estudiantes registrados están dentro de los plazos o ya certificados.</div>`;return;}
+  el.innerHTML=`<div class="alist">`+cards.map(c=>`
+    <div class="acard ${c.k}">
+      <div class="who">${esc(c.who)} <span>· ${esc(c.mat)}</span></div>
+      <div class="msg">${esc(c.msg)}</div>
+      ${c.lvl?`<span class="lvl">${esc(c.lvl)}</span>`:""}
+    </div>`).join("")+`</div>`;
+}
+
+/* ========== CRUD ========== */
+function openModal(){editId=null;$("#mtitle").textContent="Agregar estudiante";clearForm();$("#ovl").classList.add("show");$("#f_mat").focus();}
+function closeModal(){$("#ovl").classList.remove("show");}
+function clearForm(){["f_mat","f_nom","f_prog","f_inicio","f_envio","f_cert","f_grad","f_obs"].forEach(i=>$("#"+i).value="");$("#f_completo").checked=false;}
+function editStudent(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  editId=id;$("#mtitle").textContent="Editar estudiante";
+  $("#f_mat").value=s.mat||"";$("#f_nom").value=s.nom||"";$("#f_prog").value=s.prog||"";
+  $("#f_inicio").value=s.inicio||"";$("#f_envio").value=s.envio||"";$("#f_cert").value=s.cert||"";
+  $("#f_grad").value=s.grad||"";$("#f_obs").value=s.obs||"";
+  $("#f_completo").checked=s.completo==="true"||s.completo===true;
+  $("#ovl").classList.add("show");
+}
+async function delStudent(id){
+  const s=students.find(x=>x.id===id);
+  if(!confirm(`¿Eliminar a ${s?(s.nom||s.mat):"este estudiante"}? Esta acción no se puede deshacer.`))return;
+  students=students.filter(x=>x.id!==id);
+  await sset(KEY_DATA,students);
+  await deleteFromSheets(id);
+  flashSaved();render();
+}
+async function save(){
+  const isComplete=$("#f_completo").checked;
+  const data={
+    id:editId||("s"+Date.now()+Math.random().toString(36).slice(2,6)),
+    mat:$("#f_mat").value.trim(),nom:$("#f_nom").value.trim(),prog:$("#f_prog").value.trim(),
+    inicio:$("#f_inicio").value,envio:$("#f_envio").value,cert:$("#f_cert").value,
+    grad:$("#f_grad").value,obs:$("#f_obs").value.trim(),
+    completo:isComplete?"true":"false"
+  };
+  if(!data.mat&&!data.nom){alert("Indica al menos la matrícula o el nombre.");return;}
+  if(editId){students=students.map(s=>s.id===editId?data:s);}else{students.unshift(data);}
+  await sset(KEY_DATA,students);
+  const ok=await pushToSheets(data,"upsert");
+  if(ok){showOk("Guardado y sincronizado con Google Sheets ✓");}
+  else if(gsCfg.url&&gsConnected){showBanner("Guardado localmente. Error al sincronizar con Google Sheets.");}
+  flashSaved();closeModal();render();
+}
+function flashSaved(){const c=$("#savedChip");c.textContent="Guardado ✓";setTimeout(()=>c.textContent="Guardado automático",1200);}
+async function persist(){await sset(KEY_DATA,students);flashSaved();}
+
+/* ========== EXPORT / IMPORT ========== */
+function exportCSV(){
+  const head=["Matricula","Nombre","Programa","Inicio asignatura","Fecha envio","Completo","Fecha certificado","Graduacion estimada","Acceso oportuno","Puede presentar","Observaciones"];
+  const lines=[head.join(",")];
+  students.forEach(s=>{const ev=evaluate(s);
+    const row=[s.mat,s.nom,s.prog,s.inicio,s.envio,(s.completo==="true"||s.completo===true)?"Si":"No",s.cert,s.grad,
+      ev.requerido?(ev.oportuno?"Si":"No"):"",(s.completo==="true"||s.completo===true)?"Si":"No",s.obs];
+    lines.push(row.map(v=>`"${String(v||"").replace(/"/g,'""')}"`).join(","));
+  });
+  download("seguimiento_CITI.csv","\ufeff"+lines.join("\n"),"text/csv;charset=utf-8");
+}
+function backup(){download("respaldo_CITI_"+new Date().toISOString().slice(0,10)+".json",JSON.stringify({cfg,gsCfg,students},null,2),"application/json");}
+function download(name,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
+
+$("#restoreBtn").onclick=()=>$("#fileInput").click();
+$("#fileInput").onchange=e=>{
+  const file=e.target.files[0];if(!file)return;
+  const rd=new FileReader();
+  rd.onload=async()=>{
+    try{
+      const obj=JSON.parse(rd.result);
+      const incoming=Array.isArray(obj)?obj:obj.students;
+      if(!Array.isArray(incoming))throw 0;
+      if(students.length&&!confirm("¿Reemplazar los datos actuales con el respaldo?"))return;
+      students=incoming;
+      if(obj.cfg&&obj.cfg.plazo){cfg.plazo=obj.cfg.plazo;$("#plazo").value=cfg.plazo;}
+      await sset(KEY_CFG,cfg);await persist();
+      if(gsConnected){await pushAllToSheets();showOk("Respaldo restaurado y subido a Google Sheets.");}
+      render();
+    }catch(err){alert("El archivo no es un respaldo válido.");}
+    e.target.value="";
+  };
+  rd.readAsText(file);
+};
+
+const icoEdit=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+const icoDel=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>`;
+
+/* ========== WIRE UP ========== */
+$("#addBtn").onclick=openModal;
+$("#saveBtn").onclick=save;
+$("#csvBtn").onclick=exportCSV;
+$("#backupBtn").onclick=backup;
+$("#q").oninput=render;
+$("#filter").onchange=render;
+$("#ovl").onclick=e=>{if(e.target.id==="ovl")closeModal();};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+$("#plazo").onchange=async()=>{cfg.plazo=Math.max(1,parseInt($("#plazo").value)||15);$("#plazo").value=cfg.plazo;await sset(KEY_CFG,cfg);render();};
+
+/* ========== INIT ========== */
+(async function init(){
+  const c=await sget(KEY_CFG);if(c&&c.plazo){cfg=c;$("#plazo").value=cfg.plazo;}
+  const d=await sget(KEY_DATA);if(Array.isArray(d))students=d;
+  await loadGsCfg();
+  render();
+})();
+</script>
+</body>
+</html>
